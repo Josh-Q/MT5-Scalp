@@ -22,10 +22,10 @@ time_frame = mt.TIMEFRAME_M5
 window_count = 100
 number_of_lines_per_side = 3
 
-position_types_primary_buy = "Break Out Primary Buy"
-position_types_primary_sell = "Break Out Primary Sell"
-position_types_secondary_buy = "Break Out Secondary Buy"
-position_types_secondary_sell = "Break Out Secondary Sell"
+position_types_primary_buy = "Break Pri Buy"
+position_types_primary_sell = "Break Pri Sell"
+position_types_secondary_buy = "Break Sec Buy"
+position_types_secondary_sell = "Break Sec Sell"
 
 
 def filter_levels(df, number_of_lines_per_side):
@@ -69,11 +69,11 @@ def create_order(ticker, qty, order_type, price, sl, tp):
             comment = position_types_primary_buy
         else:
             comment = position_types_secondary_buy
-    elif order_type == mt.ORDER_TYPE_SELL and primary_qty == qty:
+    elif order_type == mt.ORDER_TYPE_SELL:
         if primary_qty == qty:
             comment = position_types_primary_sell
         else:
-            comment = position_types_secondary_buy
+            comment = position_types_secondary_sell
 
     request = {
         "action": mt.TRADE_ACTION_DEAL,
