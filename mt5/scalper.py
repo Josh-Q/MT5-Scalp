@@ -1,3 +1,5 @@
+import time
+
 import MetaTrader5 as mt
 import mplfinance as mpf
 # import matplotlib.pyplot as plt
@@ -5,8 +7,10 @@ import pandas as pd
 
 mt.initialize()
 
-login = 48449505
-password = 'w8FH9@FK'
+login = 48456843
+password = 'ov6WZ%Rc'
+# login = 48449505
+# password = 'w8FH9@FK'
 server = 'HFMarketsGlobal-Demo'
 path = 'C:/Program Files/MetaTrader 5/terminal64.exe'
 
@@ -16,9 +20,11 @@ mt.login(login, password, server)
 ticker = 'XAUUSD'
 primary_qty = 0.05
 secondary_qty = 0.03
-buy_order_type = mt.ORDER_TYPE_BUY
-sell_order_type = mt.ORDER_TYPE_SELL
-time_frame = mt.TIMEFRAME_M5
+buy_now_order_type = mt.ORDER_TYPE_BUY
+sell_now_order_type = mt.ORDER_TYPE_SELL
+buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
+sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
+time_frame = mt.TIMEFRAME_M1
 window_count = 20
 number_of_lines_per_side = 1
 
@@ -62,12 +68,16 @@ def filter_levels(df, number_of_lines_per_side):
 
 
 def create_order(ticker, qty, order_type, price, sl, tp):
-    if order_type == mt.ORDER_TYPE_BUY:
+    if order_type == mt.ORDER_TYPE_BUY or order_type == mt.ORDER_TYPE_BUY_LIMIT:
         comment = position_types_buy
-    elif order_type == mt.ORDER_TYPE_SELL:
+    elif order_type == mt.ORDER_TYPE_SELL or order_type == mt.ORDER_TYPE_SELL_LIMIT:
         comment = position_types_sell
+
+    time_offset = 3 * 60 * 60
+    request_life_time = 3 * 60
+    expiry_time = int(time.time() + time_offset + request_life_time)
     request = {
-        "action": mt.TRADE_ACTION_DEAL,
+        "action": mt.TRADE_ACTION_PENDING,
         "symbol": ticker,
         "volume": qty,
         "type": order_type,
@@ -75,10 +85,9 @@ def create_order(ticker, qty, order_type, price, sl, tp):
         "sl": sl,
         "tp": tp,
         "comment": comment,
-        "type_time": mt.ORDER_TIME_GTC,
-        # "type_filling": mt.ORDER_FILLING_IOC,
+        "type_time": mt.ORDER_TIME_SPECIFIED,
+        "expiration": expiry_time,
     }
-    # send a trading request
     mt.order_send(request)
 
 
@@ -120,35 +129,62 @@ def pool_data_from_mt5(ticker, timeframe, window_count):
 
 
 def check_scalp(support_levels, resistance_levels):
-    noise = 0.2
+    noise = 0
 
-    # trade execution conditions
+    # trade execution price
     adjusted_support_level = support_levels.level[0] + noise
     adjusted_resistance_level = resistance_levels.level[0] - noise
 
-    long_condition = buy_price < adjusted_support_level
-    short_condition = sell_price > adjusted_resistance_level
-    buy_sl = 2 * buy_price - adjusted_resistance_level
-    sell_sl = 2 * sell_price - adjusted_support_level
+    # risk and reward amount (scalp opportunity)
+    risk_reward_amount = adjusted_resistance_level - adjusted_support_level
+
+    # no trade if the opportunity is too small
+    if risk_reward_amount < 1:
+        return
+
+    # risk and reward ratio 1 : 1
+    buy_sl = round(adjusted_support_level - risk_reward_amount, 2)
+    sell_sl = round(adjusted_resistance_level + risk_reward_amount, 2)
 
     # tp[17] is the 17th index element in mt.positions_get() , which is the "comment"
     has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
     has_buy = any(tp[17] == position_types_buy for tp in mt.positions_get())
 
-    # print("Long condition miss by : " + str(buy_price - adjusted_support_level))
-    # print("Short condition miss by : " + str(adjusted_resistance_level - sell_price))
+    # adjusted_support_level = 2400.00
+    # buy_sl = 2200.00
+    # adjusted_resistance_level = 2400
+    # sell_sl = 2400.00
+    has_buy_pending, has_sell_pending = house_keep_open_order()
 
-    if long_condition and not has_buy:
+    if not has_buy and not has_buy_pending:
         # If long condition hit , create buy order
-        create_order(ticker, primary_qty, buy_order_type, buy_price, buy_sl, adjusted_resistance_level)
-        # create_order(ticker, secondary_qty, buy_order_type, buy_price, buy_sl, resistance_levels.level[2])
-        # create_order(ticker, secondary_qty, buy_order_type, buy_price, buy_sl, resistance_levels.level[3])
+        create_order(ticker, primary_qty, buy_limit_order_type, adjusted_support_level, buy_sl,
+                     adjusted_resistance_level)
         print("Buy orders placed")
-    elif short_condition and not has_sell:
-        create_order(ticker, primary_qty, sell_order_type, sell_price, sell_sl, adjusted_support_level)
-        # create_order(ticker, secondary_qty, sell_order_type, sell_price, sell_sl, support_levels.level[2])
-        # create_order(ticker, secondary_qty, sell_order_type, sell_price, sell_sl, support_levels.level[3])
+        print("BUY IN " + str(adjusted_support_level))
+        print("TP " + str(adjusted_resistance_level))
+        print("SL " + str(buy_sl))
+
+    if not has_sell and not has_sell_pending:
+        create_order(ticker, primary_qty, sell_limit_order_type, adjusted_resistance_level, sell_sl,
+                     adjusted_support_level)
         print("Sell orders placed")
+        print("Sell Out " + str(adjusted_resistance_level))
+        print("TP " + str(adjusted_support_level))
+        print("SL " + str(sell_sl))
+
+
+def house_keep_open_order():
+    orders = mt.orders_get()
+
+    has_buy_pending = any(order.comment == position_types_buy for order in orders)
+    has_sell_pending = any(order.comment == position_types_sell for order in orders)
+    return has_buy_pending, has_sell_pending
+    # for order in orders:
+    #     time_difference = int(current_time + time_offset) - order.time_setup
+    #     time_difference_minutes = time_difference / 60
+    #     if time_difference_minutes > 1:
+    #         mt.order_close(order['ticket'], 0)  # Close the order
 
 
 while True:
