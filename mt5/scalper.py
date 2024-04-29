@@ -15,15 +15,15 @@ mt.login(login, password, server)
 # static variables
 ticker = 'XAUUSD'
 primary_qty = 0.05
-secondary_qty = 0.01
+secondary_qty = 0.03
 buy_order_type = mt.ORDER_TYPE_BUY
 sell_order_type = mt.ORDER_TYPE_SELL
-buy_price = mt.symbol_info_tick(ticker).ask
-sell_price = mt.symbol_info_tick(ticker).bid
-last_sold_price = mt.symbol_info_tick(ticker).last
-time_frame = mt.TIMEFRAME_M1
+time_frame = mt.TIMEFRAME_M5
 window_count = 20
 number_of_lines_per_side = 1
+
+position_types_buy = "Scalping Buy"
+position_types_sell = "Scalping Sell"
 
 
 def filter_levels(df, number_of_lines_per_side):
@@ -62,6 +62,10 @@ def filter_levels(df, number_of_lines_per_side):
 
 
 def create_order(ticker, qty, order_type, price, sl, tp):
+    if order_type == mt.ORDER_TYPE_BUY:
+        comment = position_types_buy
+    elif order_type == mt.ORDER_TYPE_SELL:
+        comment = position_types_sell
     request = {
         "action": mt.TRADE_ACTION_DEAL,
         "symbol": ticker,
@@ -70,7 +74,7 @@ def create_order(ticker, qty, order_type, price, sl, tp):
         "price": price,
         "sl": sl,
         "tp": tp,
-        "comment": "Open Position For Scalper",
+        "comment": comment,
         "type_time": mt.ORDER_TIME_GTC,
         # "type_filling": mt.ORDER_FILLING_IOC,
     }
@@ -122,14 +126,17 @@ def check_scalp(support_levels, resistance_levels):
     adjusted_support_level = support_levels.level[0] + noise
     adjusted_resistance_level = resistance_levels.level[0] - noise
 
-    long_condition = last_sold_price < adjusted_support_level
-    short_condition = last_sold_price > adjusted_resistance_level
-    buy_sl = 2 * last_sold_price - adjusted_resistance_level
-    sell_sl = 2 * last_sold_price - adjusted_support_level
+    long_condition = buy_price < adjusted_support_level
+    short_condition = sell_price > adjusted_resistance_level
+    buy_sl = 2 * buy_price - adjusted_resistance_level
+    sell_sl = 2 * sell_price - adjusted_support_level
 
-    # tp[5] is the 5th index element in mt.positions_get() , which is the "order type" , 1 == SELL , 0 == BUY
-    has_sell = any(tp[5] == 1 for tp in mt.positions_get())
-    has_buy = any(tp[5] == 0 for tp in mt.positions_get())
+    # tp[17] is the 17th index element in mt.positions_get() , which is the "comment"
+    has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
+    has_buy = any(tp[17] == position_types_buy for tp in mt.positions_get())
+
+    # print("Long condition miss by : " + str(buy_price - adjusted_support_level))
+    # print("Short condition miss by : " + str(adjusted_resistance_level - sell_price))
 
     if long_condition and not has_buy:
         # If long condition hit , create buy order
@@ -145,10 +152,17 @@ def check_scalp(support_levels, resistance_levels):
 
 
 while True:
-    ohlc, current_close = pool_data_from_mt5(ticker, time_frame, window_count)
+    try:
+        buy_price = mt.symbol_info_tick(ticker).ask
+        sell_price = mt.symbol_info_tick(ticker).bid
 
-    # run plot graph
-    support_levels, resistance_levels = calculate_levels(ohlc, number_of_lines_per_side)
+        ohlc, current_close = pool_data_from_mt5(ticker, time_frame, window_count)
 
-    # check for breakouts
-    check_scalp(support_levels, resistance_levels)
+        # run plot graph
+        support_levels, resistance_levels = calculate_levels(ohlc, number_of_lines_per_side)
+
+        # check for breakouts
+        check_scalp(support_levels, resistance_levels)
+    except Exception as e:
+        print(f"An error occurred")
+        continue
