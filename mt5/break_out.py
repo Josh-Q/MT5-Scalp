@@ -5,8 +5,10 @@ import pandas as pd
 
 mt.initialize()
 
-login = 48456843
-password = 'ov6WZ%Rc'
+# login = 48456843
+# password = 'ov6WZ%Rc'
+login = 48449505
+password = 'w8FH9@FK'
 server = 'HFMarketsGlobal-Demo'
 path = 'C:/Program Files/MetaTrader 5/terminal64.exe'
 
