@@ -74,7 +74,7 @@ def create_order(ticker, qty, order_type, price, sl, tp):
         comment = position_types_sell
 
     time_offset = 3 * 60 * 60
-    request_life_time = 1 * 95
+    request_life_time = 1 * 120
     expiry_time = int(time.time() + time_offset + request_life_time)
     request = {
         "action": mt.TRADE_ACTION_PENDING,
