@@ -27,7 +27,7 @@ sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
 time_frame = mt.TIMEFRAME_M1
 window_count = 20
 number_of_lines_per_side = 1
-plot_graph = False
+plot_it = False
 # risk threshold for TP / SL
 risk_threshold = 0.8
 
@@ -113,7 +113,7 @@ def calculate_levels(ohlc, number_of_lines_per_side):
     support_levels = filter_levels(support_levels, number_of_lines_per_side)
     resistance_levels = filter_levels(resistance_levels, number_of_lines_per_side)
 
-    if plot_graph:
+    if plot_it:
         plot_graph(ohlc, support_levels, resistance_levels)
 
     return support_levels, resistance_levels
