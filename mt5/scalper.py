@@ -27,6 +27,9 @@ sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
 time_frame = mt.TIMEFRAME_M1
 window_count = 20
 number_of_lines_per_side = 1
+plot_graph = False
+# risk threshold for TP / SL
+risk_threshold = 0.8
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -110,7 +113,8 @@ def calculate_levels(ohlc, number_of_lines_per_side):
     support_levels = filter_levels(support_levels, number_of_lines_per_side)
     resistance_levels = filter_levels(resistance_levels, number_of_lines_per_side)
 
-    # plot_graph(ohlc, support_levels, resistance_levels)
+    if plot_graph:
+        plot_graph(ohlc, support_levels, resistance_levels)
 
     return support_levels, resistance_levels
 
@@ -136,7 +140,7 @@ def check_scalp(support_levels, resistance_levels):
     adjusted_resistance_level = resistance_levels.level[0] - noise
 
     # risk and reward amount (scalp opportunity)
-    risk_reward_amount = adjusted_resistance_level - adjusted_support_level
+    risk_reward_amount = (adjusted_resistance_level - adjusted_support_level) * risk_threshold
 
     # no trade if the opportunity is too small
     if risk_reward_amount < 1:
