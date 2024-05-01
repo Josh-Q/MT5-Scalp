@@ -5,7 +5,7 @@ import pandas as pd
 
 def filter_levels(df, number_of_lines_per_side, buy_price, sell_price):
     # used to prevent too many resistance / support lines too close to each other
-    noise_value = 0.5
+    noise_value = 1
 
     # Update 'color' column where level is less than sell_price
     df.loc[df['level'] < sell_price, 'color'] = 'g'
