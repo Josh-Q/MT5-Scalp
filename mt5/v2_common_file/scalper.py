@@ -26,8 +26,9 @@ sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
 sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
 time_frame = mt.TIMEFRAME_M1
-window_count = 50
+window_count = 20
 number_of_lines_per_side = 1
+noise_factor = 0.1
 plot_it = False
 trade_it = True
 
@@ -70,7 +71,8 @@ def check_scalp(support_levels, resistance_levels):
     if level_difference < 1:
         return
 
-    noise = level_difference * 0.1
+    # noise_factor multipler
+    noise = level_difference * noise_factor
     # trade execution price
     adjusted_support_level = support_levels.level.iloc[0] + noise
     adjusted_resistance_level = resistance_levels.level.iloc[0] - noise
