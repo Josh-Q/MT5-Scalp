@@ -1,10 +1,12 @@
 import MetaTrader5 as mt
-import mplfinance as mpf
 # import matplotlib.pyplot as plt
+import mplfinance as mpf
 import pandas as pd
 
 mt.initialize()
 
+# login = 48456843
+# password = 'ov6WZ%Rc'
 login = 48449505
 password = 'w8FH9@FK'
 server = 'HFMarketsGlobal-Demo'
@@ -18,9 +20,13 @@ primary_qty = 0.05
 secondary_qty = 0.03
 buy_order_type = mt.ORDER_TYPE_BUY
 sell_order_type = mt.ORDER_TYPE_SELL
-time_frame = mt.TIMEFRAME_M5
-window_count = 100
-number_of_lines_per_side = 3
+# time_frame = mt.TIMEFRAME_M1
+# window_count = 100
+# number_of_lines_per_side = 3
+time_frame = mt.TIMEFRAME_M1
+window_count = 20
+number_of_lines_per_side = 1
+show_graph = False
 
 position_types_primary_buy = "Break Out Primary Buy"
 position_types_primary_sell = "Break Out Primary Sell"
@@ -97,8 +103,9 @@ def plot_graph(ohlc, support_levels, resistance_levels):
     print("sell price " + str(sell_price))
     print("support " + ' '.join(map(str, support_levels['level'].astype(str).tolist())))
     print("resistance " + ' '.join(map(str, resistance_levels['level'].astype(str).tolist())))
-    mpf.plot(ohlc, hlines=dict(hlines=levels.level.to_list(), colors=levels.color.to_list(), linestyle='-.'),
-             type='candle')
+    if show_graph:
+        mpf.plot(ohlc, hlines=dict(hlines=levels.level.to_list(), colors=levels.color.to_list(), linestyle='-.'),
+                 type='candle')
 
 
 def calculate_levels(ohlc, number_of_lines_per_side):
@@ -180,6 +187,6 @@ try:
     support_levels, resistance_levels = calculate_levels(ohlc, number_of_lines_per_side)
 
     # check for breakouts
-    check_breakout(support_levels, resistance_levels)
+    # check_breakout(support_levels, resistance_levels)
 except Exception as e:
     print(f"An error occurred")
