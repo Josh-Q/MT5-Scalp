@@ -25,12 +25,10 @@ buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
 sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
-time_frame = mt.TIMEFRAME_M5
+time_frame = mt.TIMEFRAME_M1
 window_count = 20
 number_of_lines_per_side = 1
 plot_it = False
-# risk threshold for TP / SL
-risk_threshold = 0.8
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -61,18 +59,23 @@ def create_order(ticker, qty, order_type, price, sl, tp):
 
 
 def check_scalp(support_levels, resistance_levels):
-    noise = 0
+    if support_levels.empty or resistance_levels.empty:
+        return
 
-    # trade execution price
-    adjusted_support_level = support_levels.level[0] + noise
-    adjusted_resistance_level = resistance_levels.level[0] - noise
-
-    # risk and reward amount (scalp opportunity)
-    risk_reward_amount = (adjusted_resistance_level - adjusted_support_level) * risk_threshold
+    # difference between resistance and support level
+    level_difference = resistance_levels.level.iloc[0] - support_levels.level.iloc[0]
 
     # no trade if the opportunity is too small
-    if risk_reward_amount < 1:
+    if level_difference < 1:
         return
+
+    noise = level_difference * 0.1
+    # trade execution price
+    adjusted_support_level = support_levels.level.iloc[0] + noise
+    adjusted_resistance_level = resistance_levels.level.iloc[0] - noise
+
+    # risk and reward amount (scalp opportunity)
+    risk_reward_amount = (adjusted_resistance_level - adjusted_support_level)
 
     # risk and reward ratio 1 : 1
     buy_sl = round(adjusted_support_level - risk_reward_amount, 2)

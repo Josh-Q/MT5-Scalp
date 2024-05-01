@@ -4,63 +4,65 @@ import pandas as pd
 
 
 def filter_levels(df, number_of_lines_per_side, buy_price, sell_price):
-    filtered_levels = []
-    df.sort_index(ascending=False, inplace=True)
     # used to prevent too many resistance / support lines too close to each other
-    noise_value = 1
+    noise_value = 0.5
+
+    filtered_levels = []
+
+    max_resistance = 0
+    resistance_count = 0
+    min_support = 0
+    support_count = 0
 
     for index, row in df.iterrows():
-        if len(filtered_levels) > number_of_lines_per_side - 1:
+        if resistance_count == number_of_lines_per_side and support_count == number_of_lines_per_side:
             break
-        # support levels
-        if row.color == 'g':
-            # if have filtered_levels, run logic to check if we should add this row to the filtered_levels
-            if filtered_levels:
-                # if current row level is not too close to the previous support level and is less than current sell price , add it
-                if row.level < filtered_levels[-1][1] - noise_value and row.level < sell_price:
-                    filtered_levels.append((row.time, row.level, row.color))
-            else:
-                # if do not have any filtered_levels, add the new resistance level to the list
-                filtered_levels.append((row.time, row.level, row.color))
-        # resistance level
-        elif row.color == 'r':
-            # if have filtered_levels, run logic to check if we should add this row to the filtered_levels
-            if filtered_levels:
-                # if current row level is not too close to the previous resistance level and is greater than current buy price , add it
-                if row.level > filtered_levels[-1][1] + noise_value and row.level > buy_price:
-                    filtered_levels.append((row.time, row.level, row.color))
-            else:
-                # if do not have any filtered_levels, add the new resistance level to the list
-                filtered_levels.append((row.time, row.level, row.color))
+
+        level = row.level
+
+        if level > buy_price and resistance_count < number_of_lines_per_side:
+            if max_resistance == 0 or level - max_resistance > noise_value:
+                filtered_levels.append(row)
+                max_resistance = level
+                resistance_count += 1
+        elif level < sell_price and support_count < number_of_lines_per_side:
+            if min_support == 0 or min_support - level > noise_value:
+                filtered_levels.append(row)
+                min_support = level
+                support_count += 1
 
     filtered_df = pd.DataFrame(filtered_levels, columns=['time', 'level', 'color'])
 
-    return filtered_df
+    # Split the filtered levels into support and resistance levels
+    support_levels = filtered_df[filtered_df['color'] == 'g']
+    resistance_levels = filtered_df[filtered_df['color'] == 'r']
+
+    return support_levels, resistance_levels
+
+
+def calculate_levels(ohlc, number_of_lines_per_side, buy_price, sell_price, plot_it):
+    # using the fractol method to determine the support and resistance lines (find min/max value in a sliding window of +2 / -2 records away from selected row)
+    support_levels = ohlc['low'].rolling(window=5, center=True, min_periods=5).min()
+    resistance_levels = ohlc['high'].rolling(window=5, center=True, min_periods=5).max()
+
+    combined_levels = pd.concat([
+        pd.DataFrame({'time': support_levels.index, 'level': support_levels.values, 'color': 'g'}),
+        pd.DataFrame({'time': resistance_levels.index, 'level': resistance_levels.values, 'color': 'r'})
+    ]).sort_values(by='time', ascending=False)
+
+    # filtering
+    support_levels, resistance_levels = filter_levels(combined_levels, number_of_lines_per_side, buy_price, sell_price)
+
+    if plot_it:
+        plot_graph(ohlc, support_levels, resistance_levels)
+
+    return support_levels, resistance_levels
 
 
 def plot_graph(ohlc, support_levels, resistance_levels):
     levels = pd.concat([support_levels, resistance_levels])
     mpf.plot(ohlc, hlines=dict(hlines=levels.level.to_list(), colors=levels.color.to_list(), linestyle='-.'),
              type='candle')
-
-
-def calculate_levels(ohlc, number_of_lines_per_side, buy_price, sell_price, plot_it):
-    # using the fractol method to determine the support and resistance lines (find min/max value in a sliding window of +2 / -2 records away from selected row)
-    support_levels = ohlc['low'].rolling(window=5, center=True, min_periods=1).min()
-    resistance_levels = ohlc['high'].rolling(window=5, center=True, min_periods=1).max()
-
-    # add color to support and resistance levels
-    support_levels = pd.DataFrame({'time': support_levels.index, 'level': support_levels, 'color': 'g'})
-    resistance_levels = pd.DataFrame({'time': resistance_levels.index, 'level': resistance_levels, 'color': 'r'})
-
-    # filtering
-    support_levels = filter_levels(support_levels, number_of_lines_per_side, buy_price, sell_price)
-    resistance_levels = filter_levels(resistance_levels, number_of_lines_per_side, buy_price, sell_price)
-
-    if plot_it:
-        plot_graph(ohlc, support_levels, resistance_levels)
-
-    return support_levels, resistance_levels
 
 
 def close_order(ticker, qty, order_type, price):
