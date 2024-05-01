@@ -25,10 +25,11 @@ buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
 sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
-time_frame = mt.TIMEFRAME_M1
+time_frame = mt.TIMEFRAME_M5
 window_count = 20
 number_of_lines_per_side = 1
 plot_it = False
+trade_it = False
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -129,7 +130,8 @@ while True:
                                                              plot_it)
 
         # check for breakouts
-        check_scalp(support_levels, resistance_levels)
+        if trade_it:
+            check_scalp(support_levels, resistance_levels)
     except Exception as e:
         print(f"An error occurred")
         continue
