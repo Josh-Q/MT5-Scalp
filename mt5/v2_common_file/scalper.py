@@ -25,11 +25,11 @@ buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
 sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
-time_frame = mt.TIMEFRAME_M5
-window_count = 20
+time_frame = mt.TIMEFRAME_M1
+window_count = 50
 number_of_lines_per_side = 1
 plot_it = False
-trade_it = False
+trade_it = True
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
