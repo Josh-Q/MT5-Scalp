@@ -7,43 +7,46 @@ def filter_levels(df, number_of_lines_per_side, buy_price, sell_price):
     # used to prevent too many resistance / support lines too close to each other
     noise_value = 0.5
 
-    filtered_levels = []
+    # Update 'color' column where level is less than sell_price
+    df.loc[df['level'] < sell_price, 'color'] = 'g'
 
-    max_resistance = 0
-    resistance_count = 0
-    min_support = 0
-    support_count = 0
+    # Update 'color' column where level is greater than buy_price
+    df.loc[df['level'] > buy_price, 'color'] = 'r'
 
-    for index, row in df.iterrows():
-        if resistance_count == number_of_lines_per_side and support_count == number_of_lines_per_side:
-            break
+    support_levels = df[df['color'] == 'g']
+    resistance_levels = df[df['color'] == 'r']
 
-        level = row.level
+    # Calculate the difference between consecutive values in the 'level' column for support levels
+    support_levels_diff = abs(support_levels['level'].diff())
 
-        if level > buy_price and resistance_count < number_of_lines_per_side:
-            if max_resistance == 0 or level - max_resistance > noise_value:
-                filtered_levels.append(row)
-                max_resistance = level
-                resistance_count += 1
-        elif level < sell_price and support_count < number_of_lines_per_side:
-            if min_support == 0 or min_support - level > noise_value:
-                filtered_levels.append(row)
-                min_support = level
-                support_count += 1
+    # Calculate the difference between consecutive values in the 'level' column for resistance levels
+    resistance_levels_diff = abs(resistance_levels['level'].diff())
 
-    filtered_df = pd.DataFrame(filtered_levels, columns=['time', 'level', 'color'])
+    # Find rows where the difference is greater than or equal to 1 or is NaN
+    support_mask = (support_levels_diff >= noise_value) | (support_levels_diff.isnull())
+    resistance_mask = (resistance_levels_diff >= noise_value) | (resistance_levels_diff.isnull())
 
-    # Split the filtered levels into support and resistance levels
-    support_levels = filtered_df[filtered_df['color'] == 'g']
-    resistance_levels = filtered_df[filtered_df['color'] == 'r']
+    # Filter the DataFrames based on the mask
+    support_levels_filtered = support_levels[support_mask]
+    resistance_levels_filtered = resistance_levels[resistance_mask]
 
-    return support_levels, resistance_levels
+    # Get only the top X number of entries and sort them
+    top_x_support_levels = support_levels_filtered.head(number_of_lines_per_side).sort_values(by='level',
+                                                                                              ascending=False)
+    top_x_resistance_levels = resistance_levels_filtered.head(number_of_lines_per_side).sort_values(by='level',
+                                                                                                    ascending=True)
+
+    return top_x_support_levels, top_x_resistance_levels
 
 
 def calculate_levels(ohlc, number_of_lines_per_side, buy_price, sell_price, plot_it):
     # using the fractol method to determine the support and resistance lines (find min/max value in a sliding window of +2 / -2 records away from selected row)
-    support_levels = ohlc['low'].rolling(window=5, center=True, min_periods=5).min()
-    resistance_levels = ohlc['high'].rolling(window=5, center=True, min_periods=5).max()
+    support_levels = ohlc['low'].rolling(window=5, center=True, min_periods=1).min()
+    resistance_levels = ohlc['high'].rolling(window=5, center=True, min_periods=1).max()
+
+    # drop rows with NaN values
+    support_levels.dropna(inplace=True)
+    resistance_levels.dropna(inplace=True)
 
     combined_levels = pd.concat([
         pd.DataFrame({'time': support_levels.index, 'level': support_levels.values, 'color': 'g'}),
