@@ -1,48 +1,42 @@
 import MetaTrader5 as mt
 import mplfinance as mpf
+import numpy as np
 import pandas as pd
 
 
-def filter_levels(df, number_of_lines_per_side, buy_price, sell_price):
-    # used to prevent too many resistance / support lines too close to each other
-    noise_value = 1
+def filter_levels(df, number_of_lines_per_side, buy_price, sell_price):  #
+    # support_levels = df[df['color'] == 'g']
+    # resistance_levels = df[df['color'] == 'r']
+    support_levels = []
+    resistance_levels = []
 
-    # Update 'color' column where level is less than sell_price
-    df.loc[df['level'] < sell_price, 'color'] = 'g'
-
-    # Update 'color' column where level is greater than buy_price
-    df.loc[df['level'] > buy_price, 'color'] = 'r'
-
-    support_levels = df[df['color'] == 'g']
-    resistance_levels = df[df['color'] == 'r']
-
-    # Calculate the difference between consecutive values in the 'level' column for support levels
-    support_levels_diff = abs(support_levels['level'].diff())
-
-    # Calculate the difference between consecutive values in the 'level' column for resistance levels
-    resistance_levels_diff = abs(resistance_levels['level'].diff())
-
-    # Find rows where the difference is greater than or equal to 1 or is NaN
-    support_mask = (support_levels_diff >= noise_value) | (support_levels_diff.isnull())
-    resistance_mask = (resistance_levels_diff >= noise_value) | (resistance_levels_diff.isnull())
-
-    # Filter the DataFrames based on the mask
-    support_levels_filtered = support_levels[support_mask]
-    resistance_levels_filtered = resistance_levels[resistance_mask]
+    df = df.reset_index(drop=True)
+    for i in range(2, df.shape[0] - 2):
+        level = df['level'][i]
+        if sell_price > level:
+            if far_from_level(level, support_levels):
+                support_levels.append(level)
+        elif buy_price < level:
+            if far_from_level(level, resistance_levels):
+                resistance_levels.append(level)
 
     # Get only the top X number of entries and sort them
-    top_x_support_levels = support_levels_filtered.head(number_of_lines_per_side).sort_values(by='level',
-                                                                                              ascending=False)
-    top_x_resistance_levels = resistance_levels_filtered.head(number_of_lines_per_side).sort_values(by='level',
-                                                                                                    ascending=True)
+    top_x_support_levels = sorted(support_levels, reverse=True)[:number_of_lines_per_side]
+    top_x_resistance_levels = sorted(resistance_levels, reverse=False)[:number_of_lines_per_side]
 
     return top_x_support_levels, top_x_resistance_levels
 
 
+def far_from_level(new_level, other_levels):
+    # used to prevent too many resistance / support lines too close to each other
+    noise_value = 1
+    return np.sum([abs(new_level - x) < noise_value for x in other_levels]) == 0
+
+
 def calculate_levels(ohlc, number_of_lines_per_side, buy_price, sell_price, plot_it):
     # using the fractol method to determine the support and resistance lines (find min/max value in a sliding window of +2 / -2 records away from selected row)
-    support_levels = ohlc['low'].rolling(window=5, center=True, min_periods=1).min()
-    resistance_levels = ohlc['high'].rolling(window=5, center=True, min_periods=1).max()
+    support_levels = ohlc['low'].rolling(window=5, center=True, min_periods=5).min()
+    resistance_levels = ohlc['high'].rolling(window=5, center=True, min_periods=5).max()
 
     # drop rows with NaN values
     support_levels.dropna(inplace=True)
@@ -63,7 +57,11 @@ def calculate_levels(ohlc, number_of_lines_per_side, buy_price, sell_price, plot
 
 
 def plot_graph(ohlc, support_levels, resistance_levels):
-    levels = pd.concat([support_levels, resistance_levels])
+    support_df = pd.DataFrame({'level': support_levels, 'color': 'green'})
+    resistance_df = pd.DataFrame({'level': resistance_levels, 'color': 'red'})
+
+    # Concatenate support and resistance levels
+    levels = pd.concat([support_df, resistance_df])
     mpf.plot(ohlc, hlines=dict(hlines=levels.level.to_list(), colors=levels.color.to_list(), linestyle='-.'),
              type='candle')
 
@@ -84,7 +82,7 @@ def close_order(ticker, qty, order_type, price):
     mt.order_send(request)
 
 
-def pool_data_from_mt5(ticker, timeframe, window_count):
+def pool_data_from_mt5(ticker, timeframe, window_count, fast_ma=None, slow_ma=None):
     # connect to MT5 for data
     ohlc = pd.DataFrame(mt.copy_rates_from_pos(ticker,  # symbol
                                                timeframe,  # timeframe
@@ -94,4 +92,8 @@ def pool_data_from_mt5(ticker, timeframe, window_count):
     ohlc['time'] = pd.to_datetime(ohlc['time'], unit='s')
     ohlc.set_index('time', inplace=True)
     current_close = list(ohlc[-1:]['close'])[0]
+    if fast_ma and slow_ma:
+        ohlc['fast'] = ohlc['close'].ewm(span=slow_ma, adjust=False).mean()
+        ohlc['slow'] = ohlc['close'].ewm(span=fast_ma, adjust=False).mean()
+
     return ohlc, current_close
