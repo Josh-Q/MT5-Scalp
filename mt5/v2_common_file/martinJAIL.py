@@ -42,8 +42,8 @@ window_count = 100
 number_of_lines_per_side = 5
 noise_factor = 0.1
 # max_risk = 3
-plot_it = True
-trade_it = False
+plot_it = False
+trade_it = True
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -83,7 +83,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     # if a position exist , do not make another trade
     # if is_previous_trade_win is a loss, double trade quantity
     # if a buy and a sell order exist , do not make another trade
-    if support_levels.empty or resistance_levels.empty:
+    if len(support_levels) == 0 or len(resistance_levels) == 0:
         return
 
     # trade execution price
