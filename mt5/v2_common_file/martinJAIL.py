@@ -32,7 +32,7 @@ class Latest_Deal_Info:
 
 # static variables
 ticker = 'XAUUSD'
-primary_qty = 0.05
+primary_qty = 0.0
 buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
