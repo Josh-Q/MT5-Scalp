@@ -143,7 +143,7 @@ def check_previous_trade_win():
         if last_deal.profit > 0:
             primary_qty = 0.05
         else:
-            primary_qty = (last_deal.volume * 2) + 0.01
+            primary_qty = (latest_deal_info.primary_qty * 2) + 0.01
 
         latest_deal_info.update(last_deal.order, primary_qty)
 
