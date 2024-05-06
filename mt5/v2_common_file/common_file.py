@@ -93,7 +93,7 @@ def pool_data_from_mt5(ticker, timeframe, window_count, fast_ma=None, slow_ma=No
     ohlc.set_index('time', inplace=True)
     current_close = list(ohlc[-1:]['close'])[0]
     if fast_ma and slow_ma:
-        ohlc['fast'] = ohlc['close'].ewm(span=slow_ma, adjust=False).mean()
-        ohlc['slow'] = ohlc['close'].ewm(span=fast_ma, adjust=False).mean()
+        ohlc['fast'] = ohlc['close'].rolling(window=fast_ma).mean()
+        ohlc['slow'] = ohlc['close'].rolling(window=slow_ma).mean()
 
     return ohlc, current_close
