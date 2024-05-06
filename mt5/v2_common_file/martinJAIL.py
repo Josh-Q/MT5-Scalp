@@ -91,11 +91,11 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     latest_resistance_level = resistance_levels[0]
 
     # difference between resistance and support level
-    level_difference = latest_resistance_level - latest_support_level
+    # level_difference = latest_resistance_level - latest_support_level
 
     # no trade if the opportunity is too small
-    if level_difference < 1:
-        return
+    # if level_difference < 1:
+    #     return
 
     # risk and reward ratio 1 : 1
     buy_sl = round(latest_support_level - 1, 2)
@@ -138,12 +138,17 @@ def check_previous_trade_win():
 
     # Print the last deal history
     if deals is not None and len(deals) > 0:
-        last_deal = deals[-1]
+        last_deal = None
+    for deal in reversed(deals):
+        if deal.reason == 4 or deal.reason == 5:
+            last_deal = deal
+            break
 
+    if last_deal is not None:
         if last_deal.profit > 0:
             primary_qty = 0.05
         else:
-            primary_qty = (latest_deal_info.primary_qty * 2) + 0.01
+            primary_qty = (latest_deal_info.primary_qty * 2.00) + 0.01
 
         latest_deal_info.update(last_deal.order, primary_qty)
 
