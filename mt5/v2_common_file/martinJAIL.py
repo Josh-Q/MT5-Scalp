@@ -116,7 +116,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
 
     if not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]:
         # If long condition hit , create buy order
-        create_order(ticker, primary_qty, buy_limit_order_type, latest_support_level, buy_sl,
+        create_order(ticker, latest_deal_info.primary_qty, buy_limit_order_type, latest_support_level, buy_sl,
                      buy_tp)
         print("Buy orders placed")
         print("BUY IN " + str(latest_support_level))
@@ -124,7 +124,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
         print("SL " + str(buy_sl))
 
     if not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]:
-        create_order(ticker, primary_qty, sell_limit_order_type, latest_resistance_level, sell_sl,
+        create_order(ticker, latest_deal_info.primary_qty, sell_limit_order_type, latest_resistance_level, sell_sl,
                      sell_tp)
         print("Sell orders placed")
         print("Sell Out " + str(latest_resistance_level))
