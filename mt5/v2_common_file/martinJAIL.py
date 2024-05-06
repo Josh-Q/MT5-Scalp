@@ -123,7 +123,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
         print("TP " + str(buy_tp))
         print("SL " + str(buy_sl))
 
-    if has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]:
+    if not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]:
         create_order(ticker, primary_qty, sell_limit_order_type, latest_resistance_level, sell_sl,
                      sell_tp)
         print("Sell orders placed")
