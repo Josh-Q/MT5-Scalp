@@ -83,7 +83,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     # if a position exist , do not make another trade
     # if is_previous_trade_win is a loss, double trade quantity
     # if a buy and a sell order exist , do not make another trade
-    if len(support_levels) == 0 or len(resistance_levels) == 0:
+    if len(support_levels) <= 1 or len(resistance_levels) <= 1:
         return
 
     # trade execution price
