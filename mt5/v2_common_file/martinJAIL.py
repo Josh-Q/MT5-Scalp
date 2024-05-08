@@ -33,6 +33,8 @@ class Latest_Deal_Info:
 # static variables
 ticker = 'XAUUSD'
 primary_qty = 0.0
+max_loss_qty = 1
+risk_reward_amount = 0.5
 buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
@@ -98,10 +100,10 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     #     return
 
     # risk and reward ratio 1 : 1
-    buy_sl = round(latest_support_level - 1, 2)
-    buy_tp = round(latest_support_level + 1, 2)
-    sell_sl = round(latest_resistance_level + 1, 2)
-    sell_tp = round(latest_resistance_level - 1, 2)
+    buy_sl = round(latest_support_level - risk_reward_amount, 2)
+    buy_tp = round(latest_support_level + risk_reward_amount, 2)
+    sell_sl = round(latest_resistance_level + risk_reward_amount, 2)
+    sell_tp = round(latest_resistance_level - risk_reward_amount, 2)
 
     # tp[17] is the 17th index element in mt.positions_get() , which is the "comment"
     has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
@@ -145,7 +147,7 @@ def check_previous_trade_win():
             break
 
     if last_deal is not None:
-        if last_deal.profit > 0:
+        if last_deal.profit > 0 or last_deal.volume >= max_loss_qty:
             primary_qty = 0.05
         else:
             primary_qty = (last_deal.volume * 2.00) + 0.01
