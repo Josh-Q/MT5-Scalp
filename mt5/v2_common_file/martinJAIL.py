@@ -148,7 +148,7 @@ def check_previous_trade_win():
 
     if last_deal is not None:
         if last_deal.profit > 0 or last_deal.volume >= max_loss_qty:
-            primary_qty = 0.05
+            primary_qty = 0.01
         else:
             primary_qty = (last_deal.volume * 2.00) + 0.01
 
