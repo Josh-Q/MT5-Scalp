@@ -34,7 +34,6 @@ class Latest_Deal_Info:
 ticker = 'XAUUSD'
 primary_qty = 0.0
 max_loss_qty = 1
-risk_reward_amount = 0.5
 buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
@@ -46,6 +45,7 @@ noise_factor = 0.1
 # max_risk = 3
 plot_it = False
 trade_it = True
+is_opposite = True
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -99,12 +99,6 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     # if level_difference < 1:
     #     return
 
-    # risk and reward ratio 1 : 1
-    buy_sl = round(latest_support_level - risk_reward_amount, 2)
-    buy_tp = round(latest_support_level + risk_reward_amount, 2)
-    sell_sl = round(latest_resistance_level + risk_reward_amount, 2)
-    sell_tp = round(latest_resistance_level - risk_reward_amount, 2)
-
     # tp[17] is the 17th index element in mt.positions_get() , which is the "comment"
     has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
     has_buy = any(tp[17] == position_types_buy for tp in mt.positions_get())
@@ -116,22 +110,41 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     if has_buy or has_sell:
         return
 
-    if not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]:
-        # If long condition hit , create buy order
-        create_order(ticker, latest_deal_info.primary_qty, buy_limit_order_type, latest_support_level, buy_sl,
-                     buy_tp)
-        print("Buy orders placed")
-        print("BUY IN " + str(latest_support_level))
-        print("TP " + str(buy_tp))
-        print("SL " + str(buy_sl))
+    long_condition = not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]
+    short_condition = not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]
 
-    if not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]:
-        create_order(ticker, latest_deal_info.primary_qty, sell_limit_order_type, latest_resistance_level, sell_sl,
-                     sell_tp)
-        print("Sell orders placed")
+    risk_reward_amount = 0.5
+
+    if long_condition:
+        order_type = buy_limit_order_type
+        if is_opposite:
+            order_type = sell_limit_order_type
+            risk_reward_amount *= -1
+        # risk and reward ratio 1 : 1
+        sl = round(latest_support_level - risk_reward_amount, 2)
+        tp = round(latest_support_level + risk_reward_amount, 2)
+        # If long condition hit , create buy order
+        create_order(ticker, latest_deal_info.primary_qty, order_type, latest_support_level, sl,
+                     tp)
+        print("long_condition placed")
+        print("BUY IN " + str(latest_support_level))
+        print("TP " + str(tp))
+        print("SL " + str(sl))
+
+    if short_condition:
+        order_type = sell_limit_order_type
+        if is_opposite:
+            order_type = buy_limit_order_type
+            risk_reward_amount *= -1
+        # risk and reward ratio 1 : 1
+        sl = round(latest_resistance_level + risk_reward_amount, 2)
+        tp = round(latest_resistance_level - risk_reward_amount, 2)
+        create_order(ticker, latest_deal_info.primary_qty, order_type, latest_resistance_level, sl,
+                     tp)
+        print("short_condition placed")
         print("Sell Out " + str(latest_resistance_level))
-        print("TP " + str(sell_tp))
-        print("SL " + str(sell_sl))
+        print("TP " + str(sl))
+        print("SL " + str(tp))
 
 
 def check_previous_trade_win():
