@@ -38,6 +38,8 @@ buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
 sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
+buy_stop_order_type = mt.ORDER_TYPE_BUY_STOP
+sell_stop_order_type = mt.ORDER_TYPE_SELL_STOP
 time_frame = mt.TIMEFRAME_M1
 window_count = 100
 number_of_lines_per_side = 5
@@ -56,9 +58,9 @@ slow_ma = 21
 
 
 def create_order(ticker, qty, order_type, price, sl, tp):
-    if order_type == mt.ORDER_TYPE_BUY or order_type == mt.ORDER_TYPE_BUY_LIMIT:
+    if order_type == mt.ORDER_TYPE_BUY or order_type == mt.ORDER_TYPE_BUY_LIMIT or order_type == mt.ORDER_TYPE_BUY_STOP:
         comment = position_types_buy
-    elif order_type == mt.ORDER_TYPE_SELL or order_type == mt.ORDER_TYPE_SELL_LIMIT:
+    elif order_type == mt.ORDER_TYPE_SELL or order_type == mt.ORDER_TYPE_SELL_LIMIT or order_type == mt.ORDER_TYPE_SELL_STOP:
         comment = position_types_sell
 
     time_offset = 3 * 60 * 60
@@ -118,7 +120,9 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     if long_condition:
         order_type = buy_limit_order_type
         if is_opposite:
-            order_type = sell_limit_order_type
+            if has_sell_pending:
+                return
+            order_type = sell_stop_order_type
             risk_reward_amount *= -1
         # risk and reward ratio 1 : 1
         sl = round(latest_support_level - risk_reward_amount, 2)
@@ -127,14 +131,16 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
         create_order(ticker, latest_deal_info.primary_qty, order_type, latest_support_level, sl,
                      tp)
         print("long_condition placed")
-        print("BUY IN " + str(latest_support_level))
+        print(("SELL OUT " if is_opposite else "BUY IN ") + str(latest_support_level))
         print("TP " + str(tp))
         print("SL " + str(sl))
 
     if short_condition:
         order_type = sell_limit_order_type
         if is_opposite:
-            order_type = buy_limit_order_type
+            if has_buy_pending:
+                return
+            order_type = buy_stop_order_type
             risk_reward_amount *= -1
         # risk and reward ratio 1 : 1
         sl = round(latest_resistance_level + risk_reward_amount, 2)
@@ -142,7 +148,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
         create_order(ticker, latest_deal_info.primary_qty, order_type, latest_resistance_level, sl,
                      tp)
         print("short_condition placed")
-        print("Sell Out " + str(latest_resistance_level))
+        print(("Buy In " if is_opposite else "Sell Out ") + str(latest_resistance_level))
         print("TP " + str(sl))
         print("SL " + str(tp))
 
