@@ -40,14 +40,14 @@ buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
 sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
 buy_stop_order_type = mt.ORDER_TYPE_BUY_STOP
 sell_stop_order_type = mt.ORDER_TYPE_SELL_STOP
-time_frame = mt.TIMEFRAME_M1
+time_frame = mt.TIMEFRAME_M10
 window_count = 100
 number_of_lines_per_side = 5
 noise_factor = 0.1
 # max_risk = 3
 plot_it = False
 trade_it = True
-is_opposite = True
+is_opposite = False
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -95,11 +95,11 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     latest_resistance_level = resistance_levels[0]
 
     # difference between resistance and support level
-    # level_difference = latest_resistance_level - latest_support_level
+    level_difference = latest_resistance_level - latest_support_level
 
     # no trade if the opportunity is too small
-    # if level_difference < 1:
-    #     return
+    if level_difference < 1:
+        return
 
     # tp[17] is the 17th index element in mt.positions_get() , which is the "comment"
     has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
@@ -115,7 +115,7 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     long_condition = not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]
     short_condition = not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]
 
-    risk_reward_amount = 0.5
+    risk_reward_amount = 1
 
     if long_condition:
         order_type = buy_limit_order_type
