@@ -9,10 +9,10 @@ from mt5.v2_common_file.common_file import pool_data_from_mt5, calculate_levels
 
 mt.initialize()
 
-login = 48456843
-password = 'ov6WZ%Rc'
-# login = 48449505
-# password = 'w8FH9@FK'
+# login = 48456843
+# password = 'ov6WZ%Rc'
+login = 48449505
+password = 'w8FH9@FK'
 server = 'HFMarketsGlobal-Demo'
 path = 'C:/Program Files/MetaTrader 5/terminal64.exe'
 
@@ -112,8 +112,11 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     if has_buy or has_sell:
         return
 
-    long_condition = not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]
-    short_condition = not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]
+    # long_condition = not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]
+    # short_condition = not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]
+
+    long_condition = not has_buy_pending
+    short_condition = not has_sell_pending
 
     risk_reward_amount = 1
 
@@ -161,17 +164,18 @@ def check_previous_trade_win():
     if deals is not None and len(deals) > 0:
         last_deal = None
     for deal in reversed(deals):
+        # if deal reason is either "Stop Loss" or "Take Profit" , then proceed
         if deal.reason == 4 or deal.reason == 5:
             last_deal = deal
             break
 
+    primary_qty = 0.01
     if last_deal is not None:
-        if last_deal.profit > 0 or last_deal.volume >= max_loss_qty:
-            primary_qty = 0.01
-        else:
+        if last_deal.profit < 0 and last_deal.volume < max_loss_qty:
             primary_qty = (last_deal.volume * 2.00) + 0.01
-
-        latest_deal_info.update(last_deal.order, primary_qty)
+        return latest_deal_info.update(last_deal.order, primary_qty)
+    else:
+        return latest_deal_info.update(None, primary_qty)
 
 
 def house_keep_open_order():
