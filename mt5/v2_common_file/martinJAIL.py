@@ -158,11 +158,10 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
 
 def check_previous_trade_win():
     today = datetime.now()
-    deals = mt.history_deals_get(today - timedelta(days=1), today + timedelta(days=1))
+    deals = mt.history_deals_get(today - timedelta(days=3), today + timedelta(days=1))
 
     # Print the last deal history
-    if deals is not None and len(deals) > 0:
-        last_deal = None
+    last_deal = None
     for deal in reversed(deals):
         # if deal reason is either "Stop Loss" or "Take Profit" , then proceed
         if deal.reason == 4 or deal.reason == 5:
