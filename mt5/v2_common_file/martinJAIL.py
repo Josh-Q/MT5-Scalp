@@ -91,8 +91,8 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
         return
 
     # trade execution price
-    latest_support_level = support_levels[0] + noise_factor
-    latest_resistance_level = resistance_levels[0] - noise_factor
+    latest_support_level = support_levels[0]
+    latest_resistance_level = resistance_levels[0]
 
     # difference between resistance and support level
     level_difference = latest_resistance_level - latest_support_level
@@ -100,6 +100,9 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     # no trade if the opportunity is too small
     if level_difference < 1:
         return
+
+    latest_resistance_level -= noise_factor
+    latest_support_level += noise_factor
 
     # tp[17] is the 17th index element in mt.positions_get() , which is the "comment"
     has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
