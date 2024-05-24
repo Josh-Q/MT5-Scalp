@@ -91,8 +91,8 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
         return
 
     # trade execution price
-    latest_support_level = support_levels[0]
-    latest_resistance_level = resistance_levels[0]
+    latest_support_level = support_levels[0] + noise_factor
+    latest_resistance_level = resistance_levels[0] - noise_factor
 
     # difference between resistance and support level
     level_difference = latest_resistance_level - latest_support_level
