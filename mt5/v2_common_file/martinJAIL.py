@@ -105,12 +105,15 @@ def check_decision_point(support_levels, resistance_levels, ohlc):
     has_sell = any(tp[17] == position_types_sell for tp in mt.positions_get())
     has_buy = any(tp[17] == position_types_buy for tp in mt.positions_get())
 
-    has_buy_pending, has_sell_pending = house_keep_open_order()
-
-    check_previous_trade_win()
+    orders = mt.orders_get()
 
     if has_buy or has_sell:
+        clear_open_orders(orders)
         return
+
+    has_buy_pending, has_sell_pending = house_keep_open_order(orders)
+
+    check_previous_trade_win()
 
     # long_condition = not has_buy_pending and ohlc[-1:]['fast'].iloc[0] < ohlc[-1:]['slow'].iloc[0]
     # short_condition = not has_sell_pending and ohlc[-1:]['fast'].iloc[0] >= ohlc[-1:]['slow'].iloc[0]
@@ -177,9 +180,16 @@ def check_previous_trade_win():
         return latest_deal_info.update(None, primary_qty)
 
 
-def house_keep_open_order():
-    orders = mt.orders_get()
+def clear_open_orders(orders):
+    for order in orders:
+        request = {
+            "action": mt.TRADE_ACTION_REMOVE,
+            "order": order.ticket,
+        }
+        mt.order_send(request)
 
+
+def house_keep_open_order(orders):
     has_buy_pending = any(order.comment == position_types_buy for order in orders)
     has_sell_pending = any(order.comment == position_types_sell for order in orders)
     return has_buy_pending, has_sell_pending
