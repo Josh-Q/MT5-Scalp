@@ -9,10 +9,10 @@ from mt5.v2_common_file.common_file import pool_data_from_mt5, calculate_levels
 
 mt.initialize()
 
-# login = 48456843
-# password = 'ov6WZ%Rc'
-login = 48449505
-password = 'w8FH9@FK'
+login = 48456843
+password = 'ov6WZ%Rc'
+# login = 48449505
+# password = 'w8FH9@FK'
 server = 'HFMarketsGlobal-Demo'
 path = 'C:/Program Files/MetaTrader 5/terminal64.exe'
 
@@ -33,7 +33,7 @@ class Latest_Deal_Info:
 # static variables
 ticker = 'XAUUSD'
 primary_qty = 0.0
-max_loss_qty = 1
+max_loss_qty = 100
 buy_now_order_type = mt.ORDER_TYPE_BUY
 sell_now_order_type = mt.ORDER_TYPE_SELL
 buy_limit_order_type = mt.ORDER_TYPE_BUY_LIMIT
@@ -41,13 +41,13 @@ sell_limit_order_type = mt.ORDER_TYPE_SELL_LIMIT
 buy_stop_order_type = mt.ORDER_TYPE_BUY_STOP
 sell_stop_order_type = mt.ORDER_TYPE_SELL_STOP
 time_frame = mt.TIMEFRAME_M10
-window_count = 100
+window_count = 60
 number_of_lines_per_side = 5
 noise_factor = 0.1
 # max_risk = 3
 plot_it = False
 trade_it = True
-is_opposite = False
+is_opposite = True
 
 position_types_buy = "Scalping Buy"
 position_types_sell = "Scalping Sell"
@@ -78,7 +78,21 @@ def create_order(ticker, qty, order_type, price, sl, tp):
         "type_time": mt.ORDER_TIME_SPECIFIED,
         "expiration": expiry_time,
     }
-    mt.order_send(request)
+    # send a trading request
+    result = mt.order_send(request)
+    # check the execution result
+    print("1. order_send(): by {} {} lots at {} with deviation={} points".format(ticker, qty, price, 0));
+    if result.retcode != mt.TRADE_RETCODE_DONE:
+        print("2. order_send failed, retcode={}".format(result.retcode))
+        # request the result as a dictionary and display it element by element
+        result_dict = result._asdict()
+        for field in result_dict.keys():
+            print("   {}={}".format(field, result_dict[field]))
+            # if this is a trading request structure, display it element by element as well
+            if field == "request":
+                traderequest_dict = result_dict[field]._asdict()
+                for tradereq_filed in traderequest_dict:
+                    print("       traderequest: {}={}".format(tradereq_filed, traderequest_dict[tradereq_filed]))
 
 
 def check_decision_point(support_levels, resistance_levels, ohlc):
@@ -177,7 +191,7 @@ def check_previous_trade_win():
     primary_qty = 0.01
     if last_deal is not None:
         if last_deal.profit < 0 and last_deal.volume < max_loss_qty:
-            primary_qty = (last_deal.volume * 2.00) + 0.01
+            primary_qty = (last_deal.volume * 2.00) + (0.01 if last_deal.volume > 0.3 else 0)
         return latest_deal_info.update(last_deal.order, primary_qty)
     else:
         return latest_deal_info.update(None, primary_qty)
